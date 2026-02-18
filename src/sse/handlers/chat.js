@@ -15,22 +15,30 @@ import * as log from "../utils/logger.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
 
 /**
- * Sanitize a non-streaming JSON response for Letta / strict OpenAI clients.
+ * Sanitize response for Letta / strict OpenAI clients.
  * - Injects `object` and `created` if missing
  * - Strips `padding` and other non-standard message fields
  * - Strips Azure `content_filter_results` from choices
  * - Strips Azure `prompt_filter_results` from root
  *
- * Only applies to responses whose Content-Type is application/json.
- * Streaming (text/event-stream) is handled inside open-sse/utils/stream.js.
+ * Handles both application/json and text/event-stream (SSE returning JSON).
  */
 async function sanitizeJsonResponse(response) {
   const ct = response.headers.get("content-type") || "";
-  if (!ct.includes("application/json")) return response;
-
+  
+  let bodyText;
+  try {
+    bodyText = await response.text();
+  } catch {
+    return response;
+  }
+  
+  // Extract JSON from response (strip SSE data: [DONE] suffix if present)
+  let jsonStr = bodyText.split('\ndata:')[0].trim();
+  
   let body;
   try {
-    body = await response.json();
+    body = JSON.parse(jsonStr);
   } catch {
     return response; // Not valid JSON – pass through unchanged
   }
