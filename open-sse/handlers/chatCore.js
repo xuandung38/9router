@@ -371,7 +371,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   const providerRequiresStreaming = provider === 'openai' || provider === 'codex';
 
   // Force streaming for OpenAI/Codex models (they don't support non-streaming mode properly)
-  const stream = providerRequiresStreaming ? true : (body.stream !== false);
+  const stream = providerRequiresStreaming ? true : (body.stream === true);
 
   // Create request logger for this session: sourceFormat_targetFormat_model
   const reqLogger = await createRequestLogger(sourceFormat, targetFormat, model);
