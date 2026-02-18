@@ -87,6 +87,15 @@ export function createSSEStream(options = {}) {
               if (!parsed.object) { parsed.object = "chat.completion.chunk"; fieldsInjected = true; }
               if (!parsed.created) { parsed.created = Math.floor(Date.now() / 1000); fieldsInjected = true; }
 
+              // Strip non-standard fields from delta (e.g. GitHub Copilot adds "padding")
+              const allowedDeltaFields = ['role', 'content', 'tool_calls', 'tool_call_id', 'name', 'reasoning_content', 'refusal'];
+              const delta = parsed.choices?.[0]?.delta;
+              if (delta && typeof delta === 'object') {
+                for (const key of Object.keys(delta)) {
+                  if (!allowedDeltaFields.includes(key)) { delete delta[key]; fieldsInjected = true; }
+                }
+              }
+
               if (!hasValuableContent(parsed, FORMATS.OPENAI)) {
                 continue;
               }

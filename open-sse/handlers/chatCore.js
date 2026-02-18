@@ -756,6 +756,18 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     if (!translatedResponse.object) translatedResponse.object = "chat.completion";
     if (!translatedResponse.created) translatedResponse.created = Math.floor(Date.now() / 1000);
 
+    // Strip non-standard fields from message (e.g. GitHub Copilot adds "padding")
+    const allowedMsgFields = ['role', 'content', 'tool_calls', 'tool_call_id', 'name', 'reasoning_content', 'refusal'];
+    if (translatedResponse?.choices) {
+      for (const choice of translatedResponse.choices) {
+        if (choice.message) {
+          for (const key of Object.keys(choice.message)) {
+            if (!allowedMsgFields.includes(key)) delete choice.message[key];
+          }
+        }
+      }
+    }
+
     // Add buffer and filter usage for client (to prevent CLI context errors)
     if (translatedResponse?.usage) {
       const buffered = addBufferToUsage(translatedResponse.usage);
